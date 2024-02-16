@@ -1,7 +1,7 @@
 #ifndef MACROS_H
 #define MACROS_H
 #include <iostream>
-#include <string>
+#include <cstring>
 
 /* Defining macros for use through all modules */
 
