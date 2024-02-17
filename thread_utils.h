@@ -5,6 +5,15 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
+namespace Common{
+
+inline auto SetThreadCore(int core_id) noexcept{
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(core_id, &cpuset);
+    return (pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset) == 0);
+}
+
 // Variadic template feature: allows you to create an object with a variable number of types and arguments
 template<typename T, typename... A>
 inline auto CreateAndStartThread(int core_id, const std::string &name, T &&func, A &&... args) noexcept{
@@ -35,4 +44,6 @@ inline auto CreateAndStartThread(int core_id, const std::string &name, T &&func,
         t = nullptr;
     }
     return t;
+}
+
 }
