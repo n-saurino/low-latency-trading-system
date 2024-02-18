@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/home/pi/Github/low-latency-trading-system/build",
-  "command": "/usr/bin/arm-linux-gnueabihf-g++ -g -o CMakeFiles/low-latency-trading-system.dir/thread_example.cpp.o -c /home/pi/Github/low-latency-trading-system/thread_example.cpp",
-  "file": "/home/pi/Github/low-latency-trading-system/thread_example.cpp"
-}
-]
