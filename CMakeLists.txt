@@ -6,7 +6,7 @@ find_package(Threads REQUIRED)
 include(CTest)
 enable_testing()
 
-add_executable(low-latency-trading-system thread_example.cpp)
+add_executable(low-latency-trading-system mem_pool_example.cpp)
 
 target_link_libraries(low-latency-trading-system Threads::Threads)
 
