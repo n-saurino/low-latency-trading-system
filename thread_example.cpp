@@ -1,5 +1,7 @@
 #include "thread_utils.h"
 
+/* Dummy example of multithreading and thread management/pinning a thread to a specific core */
+
 auto DummyFunction(int a, int b, bool sleep){
     std::cout << "DummyFunction(" << a << "," << b << ")" << std::endl;
     std::cout << "DummyFunction output=" << a + b << std::endl;
