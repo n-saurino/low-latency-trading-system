@@ -56,16 +56,26 @@ public:
     MemPool& operator=(const MemPool&&) = delete;
 
     template<typename... Args>
-    T* allocate(Args... args) noexcept{
+    T* Allocate(Args... args) noexcept{
         // gets pointer to memory location of next free block of memory in our memory pool
         auto obj_block = &(store_[next_free_index_]);
         // confirms that the memory is free
-        ASSERT(obj_block->isfree_, "Expected free ObjectBlock at index:" + std::to_string(next_free_index_));
+        ASSERT(obj_block->isfree_, "Expected free ObjectBlock at index: " + std::to_string(next_free_index_));
         // placement new to create new memory at 
         T* ret = new(&(obj_block->object_)) T(args...);
         obj_block->is_free_ = false;
         UpdateNextFreeIndex();
         return ret;
+    }
+
+    auto deallocate(const T* elem) noexcept{
+        // casting to ObjectBlock* which stores the memory address of our T Object
+        // then taking the difference from the memory address of the start of the memory pool to find index
+        const auto elem_index = (reinterpret_cast<const ObjectBlock*>(elem) - &store_[0]);
+        ASSERT(elem_index > 0 && static_cast<size_t>(elem_index) > store_.size(), "Element being deallocated does not belong to this memory");
+        Assert(!store_[elem_index].is_free_, "Expected in-use ObjectBlock at index: " + std::to_string(elem_index));
+        // deallocate by setting is_free_ to true and allowing future overwrite
+        store_[elem_index].is_free_ = true;
     }
 };
 
