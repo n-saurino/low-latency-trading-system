@@ -12,7 +12,7 @@ auto ConsumeFunction(LFQueue<MyStruct>* lfq){
     while(lfq->Size()){
         const auto d = lfq->GetNextToRead();
         lfq->UpdateReadIndex();
-        std::cout << "ConsumeFunction read elem: " << d->d_[0] < ", " << d->d_[1] << ", " << d->d_[2] << " lfq-size: " << lfq->Size() << std::endl;
+        std::cout << "ConsumeFunction read elem: " << d->d_[0] << ", " << d->d_[1] << ", " << d->d_[2] << " lfq-size: " << lfq->Size() << std::endl;
         std::this_thread::sleep_for(1s);
     }
     std::cout << "ConsumeFunction exiting." << std::endl;
@@ -25,7 +25,7 @@ int main(int, char**){
         const MyStruct d{i, i * 10, i * 100};
         *(lfq.GetNextToWriteTo()) = d;
         lfq.UpdateWriteIndex();
-        std::cout << "main constructed elem: " << d.d_[0] << ", " << d.d_[1] << ", " << d.d_[2] << " lfq-size: " << lfq->Size() << std::endl;
+        std::cout << "main constructed elem: " << d.d_[0] << ", " << d.d_[1] << ", " << d.d_[2] << " lfq-size: " << lfq.Size() << std::endl;
         using namespace std::literals::chrono_literals;
         std::this_thread::sleep_for(1s);
     }
