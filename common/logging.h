@@ -189,14 +189,14 @@ public:
     // function used by performant thread to push log to lock-free queue
     // Example: log("Integer:% String:% Double:%", int_val, str_val, dbl_val); 
     template< typename T, typename... A>
-    auto log(const char* s, const T &value, A... args) noexcept{
+    auto Log(const char* s, const T &value, A... args) noexcept{
         while(*s){
             if(*s == '%'){
                 if(UNLIKELY(*(s+1) == '%')){
                     ++s;
                 }else{
                     PushValue(value);
-                    log(s + 1, args...);
+                    Log(s + 1, args...);
                     return;
                 }
             }
@@ -205,7 +205,7 @@ public:
         FATAL("Extra arguments provided to log()");
     }
 
-    auto log(const char* s) noexcept{
+    auto Log(const char* s) noexcept{
         while(*s){
             if(*s == '%'){
                 if(UNLIKELY(*(s+1) == '%')){
