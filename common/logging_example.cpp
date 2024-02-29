@@ -17,6 +17,7 @@ int main(int, char**){
         std::cout << "pre-standard C++\n";
     #endif
     */
+   
     using namespace Common;
 
     char c = 'd';
