@@ -61,7 +61,7 @@ namespace Common{
         return (errno == EWOULDBLOCK || errno == EINPROGRESS);
     }
 
-    auto SetMcastTTL(int fd, int ttl) -> bool{
+    auto SetMcastTTL(int fd, int mcast_ttl) -> bool{
         return (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, reinterpret_cast<void*>(&mcast_ttl), sizeof(mcast_ttl)) != -1);
     }
 
@@ -70,7 +70,8 @@ namespace Common{
     }
 
     auto Join(int fd, const std::string &ip, const std::string &iface, int port) -> bool{
-
+        const ip_mreq mreq{{inet_addr(ip.c_str())}, {htonl(INADDR_ANY)}};
+        return (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) != -1);
     }
 
     auto CreateSocket(Logger &logger, const std::string& t_ip, const std::string& iface, int port, bool is_udp, bool is_blocking, bool is_listening, int ttl, bool needs_so_timestamp) -> int{
@@ -144,7 +145,7 @@ namespace Common{
             if(is_udp && ttl){
                 const bool is_multicast = atoi(ip.c_str()) & 0xe0;
                 if(is_multicast && !SetMcastTTL(fd, ttl)){
-                    logger.Log("SetMcast() failed. errno:%\n", sstrerror(errno));
+                    logger.Log("SetMcast() failed. errno:%\n", strerror(errno));
                     return -1;
                 }
 
@@ -155,7 +156,7 @@ namespace Common{
             }
 
             // give access for timestamps of incoming packets
-            if(needs_so_timestamp && !SETSOTimestamp(fd)){
+            if(needs_so_timestamp && !SetSOTimestamp(fd)){
                 logger.Log("SetSOTimestamp() failed. errno:%\n", strerror(errno));
                 return -1;
             }

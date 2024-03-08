@@ -14,7 +14,7 @@ int main(int, char**){
         const std::string reply = "TCPServer received msg:"
         + std::string(socket->rcv_buffer_, socket->next_rcv_valid_index_);
         socket->next_send_valid_index_ = 0;
-        socket->send(reply.data(), reply.length());
+        socket->Send(reply.data(), reply.length());
     };
 
     auto TCPServerRecvFinishedCallback = [&]() noexcept{
@@ -27,18 +27,17 @@ int main(int, char**){
 
         logger_.Log("TCPSocket::DefaultRecvCallback() socket:% len:% rx:% msg:%\n",
         socket->fd_, socket->next_rcv_valid_index_, rx_time, recv_msg);
-    }
+    };
 
     const std::string iface = "lo";
     const std::string ip = "127.0.0.1";
     const int port = 12345;
 
-    logger_.log("Creating TCPServer on iface: % port:%\n",
-    iface, port);
+    logger_.Log("Creating TCPServer on iface: % port:% \n", iface, port);
     TCPServer server(logger_);
     server.recv_callback_ = TCPServerRecvCallback;
     server.recv_finished_callback_ = TCPServerRecvFinishedCallback;
-    server.listen(iface, port);
+    server.Listen(iface, port);
 
     std::vector<TCPSocket*> clients(5);
 
@@ -46,8 +45,7 @@ int main(int, char**){
         clients[i] = new TCPSocket(logger_);
         clients[i]->recv_callback_ = TCPClientRecvCallback;
 
-        logger_.Log("Connecting TCPClient-[%] on ip:% iface:%
-        port:%\n", i, ip, iface, port);
+        logger_.Log("Connecting TCPClient-[%] on ip:% iface:% port:% \n", i, ip, iface, port);
         clients[i]->Connect(ip, iface, port, false);
         server.Poll();
     }
@@ -59,11 +57,11 @@ int main(int, char**){
             const std::string client_msg = "CLIENT-[" + std::to_string(i) + "] : Sending "
             + std::to_string(itr * 100 + i);
             logger_.Log("Sending TCPClient-[%] %]\n", i, client_msg);
-            clients[i]->send(client_msg.data(), client_msg.length());
+            clients[i]->Send(client_msg.data(), client_msg.length());
             clients[i]->SendAndRecv();
         
             std::this_thread::sleep_for(500ms);
-            server.poll();
+            server.Poll();
             server.SendAndRecv();
         }
     }

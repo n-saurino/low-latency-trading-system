@@ -1,6 +1,7 @@
 #pragma once
 #include <chrono>
 #include <ctime>
+#include <string>
 
 namespace Common{
     typedef int64_t Nanos;

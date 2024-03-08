@@ -13,19 +13,10 @@ public:
     std::string time_str_;
     Logger &logger_;
 
-    explicit TCPServer(Logger& logger): listener_socket_(logger), logger_(logger){
-        recv_callback_ = [this](auto socket, auto rx_time){
-            DefaultRecvCallback(socket, rx_time);
-            recv_finished_callback_ = [this](){
-                DefaultRecvFinishedCallback();
-            };
-        }
-    }
-
     auto DefaultRecvCallback(TCPSocket* socket, Nanos rx_time) noexcept{
         logger_.Log("%:% %() % TCPServer::DefaultRecvCallback() socket:% len:% rx:%\n",
-        __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str),
-        socket->fd_, socket->next_rcv_valid_index, rx_time);
+        __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_),
+        socket->fd_, socket->next_rcv_valid_index_, rx_time);
     }
 
     auto DefaultRecvFinishedCallback() noexcept{
@@ -33,14 +24,34 @@ public:
         __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_));
     }
 
-    auto TCPServer::Destroy(){
+    explicit TCPServer(Logger& logger): listener_socket_(logger), logger_(logger){
+        recv_callback_ = [this](auto socket, auto rx_time){
+            DefaultRecvCallback(socket, rx_time);
+            recv_finished_callback_ = [this](){
+                DefaultRecvFinishedCallback();
+            };
+        };
+    }
+
+    auto epoll_add(TCPSocket* socket){
+        epoll_event ev{};
+        ev.events = EPOLLET | EPOLLIN;
+        ev.data.ptr = reinterpret_cast<void*>(socket);
+        return (epoll_ctl(efd_,EPOLL_CTL_ADD, socket->fd_, &ev) != -1);
+    }
+
+    auto epoll_del(TCPSocket* socket){
+        return (epoll_ctl(efd_, EPOLL_CTL_DEL, socket->fd_, nullptr) != -1);
+    }
+
+    auto Destroy(){
         close(efd_);
         efd_ = -1;
         listener_socket_.destroy();
     }
 
-    auto TCPServer::Listen(const std::string &iface, int port) -> void{
-        destroy();
+    auto Listen(const std::string &iface, int port) -> void{
+        Destroy();
         efd_ = epoll_create(1);
         ASSERT(efd_ >= 0, "epoll_create() failed error: " + std::string(std::strerror(errno)));
 
@@ -50,25 +61,14 @@ public:
         ASSERT(epoll_add(&listener_socket_), "epoll_ctl() failed. error: " + std::string(std::strerror(errno)));
     }
 
-    auto TCPServer::epoll_add(TCPSocket* socket){
-        epoll_event ev{};
-        ev.events = EPOLLET | EPOLLIN;
-        ev.data.ptr = reinterpret_cast<void*>(socket);
-        return (epoll_ctl(efd_,EPOLL_CTL_ADD, socket->fd_, &ev) != -1);
-    }
-
-    auto TCPServer::epoll_del(TCPSocket* socket){
-        return (epoll_ctl(efd_, EPOLL_CTL_DEL, socket->fd_, nullptr) != -1);
-    }
-
-    auto TCPServer::Del(TCPSocket* socket){
+    auto Del(TCPSocket* socket){
         epoll_del(socket);
         sockets_.erase(std::remove(sockets_.begin(), sockets_.end(), socket), sockets_.end());
-        receive_sockets.erase(std::remove(receive_sockets_.begin(), receive_sockets_.end(), socket), receive_sockets_.end());
+        receive_sockets_.erase(std::remove(receive_sockets_.begin(), receive_sockets_.end(), socket), receive_sockets_.end());
         send_sockets_.erase(std::remove(send_sockets_.begin(), send_sockets_.end(), socket), send_sockets_.end());
     }
 
-    auto TCPServer::Poll() noexcept -> void{
+    auto Poll() noexcept -> void{
         const int max_events = 1 + sockets_.size();
 
         for(auto socket: disconnected_sockets_){
@@ -98,7 +98,7 @@ public:
             }
 
             if(event.events & EPOLLOUT){
-                logger_.log("%:% %() % EPOLLOUT socket:%\n", 
+                logger_.Log("%:% %() % EPOLLOUT socket:%\n", 
                 __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_), socket->fd_);
                 if(std::find(send_sockets_.begin(), send_sockets_.end(), socket) == send_sockets_.end()){
                     send_sockets_.push_back(socket);
@@ -106,7 +106,7 @@ public:
             }
 
             if(event.events & (EPOLLERR | EPOLLHUP)){
-                logger_.log("%:% %() % EPOLLERR socket:%\n", 
+                logger_.Log("%:% %() % EPOLLERR socket:%\n", 
                 __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_), socket->fd_);
                 if(std::find(disconnected_sockets_.begin(), disconnected_sockets_.end(), socket) == disconnected_sockets_.end()){
                     disconnected_sockets_.push_back(socket);
@@ -146,7 +146,7 @@ public:
         }   
     }
 
-    auto TCPServer::SendAndRecv() noexcept -> void{
+    auto SendAndRecv() noexcept -> void{
         auto recv = false;
 
         for(auto socket: receive_sockets_){

@@ -23,21 +23,28 @@ namespace Common{
         std::string time_str_;
         Logger& logger_;
 
+        // log information confirming that the callback was invoked
+        auto DefaultRecvCallback(TCPSocket* socket, Nanos rx_time) noexcept{
+            logger_.Log("%:% %() %TCPSocket::DefaultRecvCallback() socket:% len:% rx:%\n",
+            __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_),
+            socket->fd_, socket->next_rcv_valid_index_, rx_time);
+        }
+
         explicit TCPSocket(Logger& logger): logger_(logger){
             send_buffer_ = new char[TCPBufferSize];
             rcv_buffer_ = new char[TCPBufferSize];
             recv_callback_ = [this](auto socket, auto rx_time){
                 DefaultRecvCallback(socket, rx_time);
-            }
+            };
         }
 
-        auto TCPSocket::destroy() noexcept -> void{
+        auto Destroy() noexcept -> void{
             close(fd_);
             fd_ = -1;
         }
 
         ~TCPSocket(){
-            destroy();
+            Destroy();
             delete[] send_buffer_;
             send_buffer_ = nullptr;
             delete[] rcv_buffer_;
@@ -51,25 +58,25 @@ namespace Common{
         TCPSocket& operator=(const TCPSocket&) = delete;
         TCPSocket& operator=(const TCPSocket&&) = delete;
 
-        auto TCPSocket::Connect(const std::string& ip, const std::string &iface, int port, bool is_listening) -> int{
-            destroy();
+        auto Connect(const std::string& ip, const std::string &iface, int port, bool is_listening) -> int{
+            Destroy();
             fd_ = CreateSocket(logger_, ip, iface, port, false, false, is_listening, 0, true);
 
-            in_in_addr.sin_addr = INADDR_ANY;
+            in_in_addr.sin_addr.s_addr = INADDR_ANY;
             in_in_addr.sin_port = htons(port);
             in_in_addr.sin_family = AF_INET;
 
             return fd_;
         }
 
-        auto TCPSocket::Send(const void* data, size_t len) noexcept -> void{
+        auto Send(const void* data, size_t len) noexcept -> void{
             if(len > 0){
                 memcpy(send_buffer_ + next_send_valid_index_, data, len);
                 next_send_valid_index_ += len;
             }
         }
 
-        auto TCPSocket::SendAndRecv() noexcept -> bool{
+        auto SendAndRecv() noexcept -> bool{
             char ctrl[CMSG_SPACE(sizeof(struct timeval))];
             struct cmsghdr* cmsg = (struct cmsghdr*) &ctrl;
             
@@ -93,7 +100,7 @@ namespace Common{
                 struct timeval time_kernel;
                 if(cmsg->cmsg_level == SOL_SOCKET &&
                 cmsg->cmsg_type == SCM_TIMESTAMP &&
-                cmsg->cmsg->len == CMSG_LEN(sizeof(time_kernel))){
+                cmsg->cmsg_len == CMSG_LEN(sizeof(time_kernel))){
 
                     memcpy(&time_kernel, CMSG_DATA(cmsg), sizeof(time_kernel));
                     kernel_time = time_kernel.tv_sec * NANOS_TO_SECS + time_kernel.tv_usec * NANOS_TO_MICROS;
@@ -102,7 +109,7 @@ namespace Common{
                 const auto user_time = GetCurrentNanos();
 
                 logger_.Log("%:% %() % read socket:% len:% utime:% ktime:% diff:%\n", 
-                __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str),
+                __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_),
                 fd_, next_rcv_valid_index_, user_time, kernel_time, (user_time - kernel_time));
 
                 recv_callback_(this, kernel_time);
@@ -113,7 +120,8 @@ namespace Common{
             while(n_send > 0){
                 auto n_send_this_msg = std::min(static_cast<ssize_t>(next_send_valid_index_), n_send);
                 const int flags = MSG_DONTWAIT | MSG_NOSIGNAL | (n_send_this_msg < n_send ? MSG_MORE : 0);
-                auto n = ::Send(fd_, send_buffer_, n_send_this_msg, flags);
+                // REVIEW
+                auto n = ::send(fd_, send_buffer_, n_send_this_msg, flags);
                 if(UNLIKELY(n < 0)){
                     if(!WouldBlock()){
                         send_disconnected_ = true;
@@ -121,7 +129,7 @@ namespace Common{
                     break;
                 }
 
-                logger.Log("%:% %() % send socket:% len:%\n",
+                logger_.Log("%:% %() % send socket:% len:%\n",
                 __FILE__, __LINE__, __FUNCTION__,
                 Common::GetCurrentTimeStr(&time_str_), fd_, n);
 
@@ -129,16 +137,9 @@ namespace Common{
                 ASSERT(n==n_send_this_msg, "Don't support partial send lengths yet.");
             }
             
-            next_send valid_index_ = 0;
+            next_send_valid_index_ = 0;
             
             return (n_rcv > 0);
-        }
-
-        // log information confirming that the callback was invoked
-        auto DefaultRecvCallback(TCPSocket* socket, Nanos rx_time) noexcept{
-            logger_.Log("%:% %() %TCPSocket::DefaultRecvCallback() socket:% len:% rx:%\n",
-            __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_),
-            socket->fd_, socket->next_rcv_valid_index_, rx_time);
         }        
     };
 
