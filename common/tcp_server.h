@@ -47,7 +47,7 @@ public:
     auto Destroy(){
         close(efd_);
         efd_ = -1;
-        listener_socket_.destroy();
+        listener_socket_.Destroy();
     }
 
     auto Listen(const std::string &iface, int port) -> void{

@@ -136,7 +136,7 @@ namespace Common{
                 return -1;
             }
 
-            if(!is_udp && is_listening && listen(fd, MAXTCPServerBacklog) != -1){
+            if(!is_udp && is_listening && listen(fd, MAXTCPServerBacklog) < 0){
                 logger.Log("listen() failed. errno:%\n", strerror(errno));
                 return -1;
             }
