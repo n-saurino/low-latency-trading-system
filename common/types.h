@@ -1,10 +1,9 @@
 #pragma once
 #include <cstdint>
 #include <limits>
-#include "common/macros.h"
+#include "macros.h"
 
 namespace Common{
-    constexpr size_t LOG_QUEUE_SIZE = 8*1024*1024;
     constexpr size_t ME_MAX_TICKERS = 8;
     constexpr size_t ME_MAX_CLIENT_UPDATES = 256*1024;
     constexpr size_t ME_MAX_MARKET_UPDATES = 256*1024;
