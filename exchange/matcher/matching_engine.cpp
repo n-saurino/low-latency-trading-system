@@ -37,6 +37,15 @@ MatchingEngine::Stop() -> void{
     run_ = false;
 }
 
-// !!Need to implement Run() next!!
-
+auto Run() noexcept{
+    logger_.log("%:% %() %\n", __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_));
+    while(run_){
+        const auto me_client_request = incoming_requests_->GetNextToRead();
+        if(LIKELY(me_client_request)){
+            logger_.log("%:% %() % Processing %\n", __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_), me_client_request->ToString());
+            ProcessClientRequest(me_client_request);
+            incoming_requests_->UpdateReadIndex();
+        }
+    }
+}
 }
