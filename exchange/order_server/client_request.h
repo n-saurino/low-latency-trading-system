@@ -1,7 +1,7 @@
 #pragma once
 #include <sstream>
-#include "common/types.h"
-#include "common/lf_queue.h"
+#include "../../common/types.h"
+#include "../../common/lf_queue.h"
 
 using namespace Common;
 
@@ -13,7 +13,7 @@ enum class ClientRequestType : uint8_t{
     CANCEL = 2
 };
 
-inline std::string ClientRequestToString(ClientRequestType type) -> std::string{
+inline std::string ClientRequestTypeToString(ClientRequestType type){
     switch (type){
     case ClientRequestType::NEW:
         return "NEW";
@@ -37,7 +37,7 @@ struct MEClientRequest{
     Qty qty_ = Qty_INVALID;
     auto ToString() const{
         std::stringstream ss;
-        ss << "MEClientRequest" << " [" << "type: " << ClientRequestToString(type_)
+        ss << "MEClientRequest" << " [" << "type: " << ClientRequestTypeToString(type_)
         << " client: " << ClientIdToString(client_id_)
         << " ticker: " << TickerIdToString(ticker_id_)
         << " oid: " << OrderIdToString(order_id_)

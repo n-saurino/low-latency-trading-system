@@ -18,8 +18,8 @@ MatchingEngine::~MatchingEngine(){
     using namespace std::literals::chrono_literals;
     std::this_thread::sleep_for(1s);
     incoming_requests_ = nullptr;
-    outgoing_ogw_responses = nullptr;
-    outgoing_md_updates = nullptr;
+    outgoing_ogw_responses_ = nullptr;
+    outgoing_md_updates_ = nullptr;
     for(auto& order_book : ticker_order_book_){
         delete order_book;
         order_book = nullptr;

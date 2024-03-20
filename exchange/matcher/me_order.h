@@ -45,7 +45,7 @@ struct MEOrder{
     }
 };
 
-typdef std::array<MEOrder*, ME_MAX_ORDER_IDS> OrderHashMap;
+typedef std::array<MEOrder*, ME_MAX_ORDER_IDS> OrderHashMap;
 typedef std::array<OrderHashMap, ME_MAX_NUM_CLIENTS> ClientOrderHashmap;
 
 struct MEOrdersAtPrice{
@@ -56,8 +56,8 @@ struct MEOrdersAtPrice{
     MEOrdersAtPrice* next_entry_ = nullptr;
 
     MEOrdersAtPrice() = default;
-    MEOrdersAtPrice(Side side, Price price, MEOrder* first_me_order, MEOrdersAtPrice prev_entry, MEOrdersAtPrice* next_entry): 
-    side_(side), price_(price),first_me_order_(first_me_order), prev_entry_(prev_entry_), next_entry_(next_entry){
+    MEOrdersAtPrice(Side side, Price price, MEOrder* first_me_order, MEOrdersAtPrice* prev_entry, MEOrdersAtPrice* next_entry): 
+    side_(side), price_(price),first_me_order_(first_me_order), prev_entry_(prev_entry), next_entry_(next_entry){
 
     }
 
@@ -67,8 +67,8 @@ struct MEOrdersAtPrice{
         << "side: " << SideToString(side_) << " "
         << "price: " << PriceToString(price_) << " "
         << "first_me_order: " << (first_me_order_ ? first_me_order_->ToString() : "null") << " "
-        << "prev: " << (prev_ ? prev_ -> price_ : Price_INVALID) << " "
-        << "next: " << (next_ ? next_ -> price : Price_INVALID) << "]";
+        << "prev: " << (prev_entry_ ? prev_entry_ -> price_ : Price_INVALID) << " "
+        << "next: " << (next_entry_ ? next_entry_ -> price_ : Price_INVALID) << "]";
 
         return ss.str();
     }

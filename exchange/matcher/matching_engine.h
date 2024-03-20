@@ -2,18 +2,20 @@
 #include "../../common/thread_utils.h"
 #include "../../common/lf_queue.h"
 #include "../../common/macros.h"
-#include "../../order_server/client_request.h"
-#include "../../order_server/client_response.h"
+#include "../../common/logging.h"
+#include "../order_server/client_request.h"
+#include "../order_server/client_response.h"
 #include "../market_data/market_update.h"
 #include "me_order.h"
 
 namespace Exchange{
 class MatchingEngine final{
 private:
+    // Need to create OrderBookHashMap class
     OrderBookHashMap ticker_order_book_;
     ClientRequestLFQueue* incoming_requests_ = nullptr;
     ClientResponseLFQueue* outgoing_ogw_responses_ = nullptr;
-    ClientResponseLFQueue* outgoing_md_responses_ = nullptr;
+    MEMarketUpdateLFQueue* outgoing_md_updates_ = nullptr;
     volatile bool run_ = false;
     std::string time_str_;
     Logger logger_;
@@ -40,7 +42,7 @@ public:
 
             case ClientRequestType::CANCEL:
                 {
-                 order_book->Cancel(client_request->client_id_, client_request->order_id_
+                 order_book->Cancel(client_request->client_id_, client_request->order_id_,
                                     client_request->ticker_id_);
                 }
                 break;
@@ -56,7 +58,7 @@ public:
     // writes client response to outgoing_ogw_responses_ lf queue
     // and then advances the writer index
     auto SendClientResponse(const MEClientResponse* client_response) noexcept{
-        logger_.log("%:% %() % Sending %\n", __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_),
+        logger_.Log("%:% %() % Sending %\n", __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_),
                     client_response->ToString());
         auto next_write = outgoing_ogw_responses_->GetNextToWriteTo();
         *next_write = std::move(*client_response);
@@ -64,7 +66,7 @@ public:
     }
 
     auto SendMarketUpdate(const MEMarketUpdate* market_update) noexcept{
-        logger_.log("%:% %() % Sending %\n", __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_),
+        logger_.Log("%:% %() % Sending %\n", __FILE__, __LINE__, __FUNCTION__, Common::GetCurrentTimeStr(&time_str_),
                     market_update->ToString());
         auto next_write = outgoing_md_updates_->GetNextToWriteTo();
         *next_write = std::move(*market_update);
@@ -75,5 +77,7 @@ public:
     MatchingEngine() = delete;
     MatchingEngine(const MatchingEngine &) = delete;
     MatchingEngine(const MatchingEngine &&) = delete;
+    MatchingEngine &operator=(const MatchingEngine &) = delete;
+    MatchingEngine &operator=(const MatchingEngine &&) = delete;
 };
 }
