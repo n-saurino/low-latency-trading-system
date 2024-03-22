@@ -7,6 +7,7 @@
 #include "../order_server/client_response.h"
 #include "../market_data/market_update.h"
 #include "me_order.h"
+#include "me_order_book.h"
 
 namespace Exchange{
 class MatchingEngine final{
