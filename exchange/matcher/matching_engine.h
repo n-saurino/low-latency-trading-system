@@ -26,6 +26,7 @@ public:
     ~MatchingEngine();
     auto Start() -> void;
     auto Stop() -> void;
+    auto Run() noexcept;
     
     // checks for the type of the MEClientRequest and forwards it
     // to the limit order book of the corresponding instrument
