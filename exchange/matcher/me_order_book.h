@@ -80,11 +80,26 @@ public:
     MEOrderBook& operator=(const MEOrderBook&) = delete;
     MEOrderBook& operator=(const MEOrderBook&&) = delete;
 
+   // return the next market order id
+   auto GenerateNewMarketOrderId() noexcept -> OrderId{
+      return next_market_order_id_;
+   }
+
+   // converts a price to an index that ranges between 0 and ME_MAX_PRICE_LEVELS-1
+   // used to index the prices levels std::array
+   auto PriceToIndex(Price price) const noexcept{
+      return (price % ME_MAX_PRICE_LEVELS);
+   }
+
+   auto GetOrdersAtPrice(Price price) const noexcept -> MEOrdersAtPrice*{
+      return price_orders_at_price_.at(PriceToIndex(price));
+   }
+
     // Add()
     void Add(ClientId client_id, OrderId order_id, 
             TickerId ticker_id, Side side, 
             Price price, Qty qty){
-
+      
             }
 
     // Cancel()
