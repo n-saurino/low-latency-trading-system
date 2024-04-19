@@ -95,15 +95,53 @@ public:
       return price_orders_at_price_.at(PriceToIndex(price));
    }
 
-    // Add()
-    void Add(ClientId client_id, OrderId order_id, 
-            TickerId ticker_id, Side side, 
-            Price price, Qty qty){
-      
-            }
+      // adds order to the book
+   auto AddOrder(MEOrder* order) noexcept{
 
-    // Cancel()
-    void Cancel(ClientId client_id, OrderId order_id, TickerId ticker_id_){
+   }
+
+   // get priority value by checking if there are orders at a price level
+   // and returning the last order at a price level's priority + 1
+   auto GetNextPriority(TickerId ticker_id, Price price){
+      const auto orders_at_price = GetOrdersAtPrice(price);
+      if(!orders_at_price){
+         return 1lu;
+      return orders_at_price->first_me_order_->prev_order_->priority_ + 1;
+      }
+   }
+
+    // Add()
+   auto Add(ClientId client_id, OrderId client_order_id, 
+            TickerId ticker_id, Side side, 
+            Price price, Qty qty) noexcept -> void{
+      // set client_response attributes
+      const auto new_market_order_id = GenerateNewMarketOrderId();
+      client_response_ = {ClientResponseType::ACCEPTED, client_id, ticker_id, client_order_id, 
+                          new_market_order_id, side, price, 0, qty};
+      
+      matching_engine->SendClientResponse(&client_response_);
+
+      // check if order has matches with passive orders in orderbook
+      const auto leaves_qty = CheckForMatch(client_id, client_order_id, ticker_id, side, price, qty, new_market_order_id);
+
+      if(LIKELY(leaves_qty)){
+         const auto priority = GetNextPriority(ticker_id, price);
+         // create new order based on MEOrder Constructor and allocate it
+         // from order_pool
+         auto order = order_pool_.Allocate(ticker_id, client_id, client_order_id,
+                                           new_market_order_id, side, price, leaves_qty,
+                                           priority, nullptr, nullptr);
+         // add order to book
+         AddOrder(order);
+          // create new market update
+         market_update_ = {MarketUpdateType::ADD, client_response_.market_order_id_,
+                                          ticker_id, side, price, leaves_qty, priority};
+         matching_engine_->SendMarketUpdate(&market_update_);
+      }
+   }
+
+   // Cancel()
+   void Cancel(ClientId client_id, OrderId order_id, TickerId ticker_id_){
 
     }
 
