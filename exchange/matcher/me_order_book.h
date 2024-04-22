@@ -97,6 +97,80 @@ public:
 
       // adds order to the book
    auto AddOrder(MEOrder* order) noexcept{
+      const auto orders_at_price = GetOrdersAtPrice(order->price);
+      if(!orders_at_price){
+         order->next_order_ = order->prev_order_ = order;
+         auto new_orders_at_price = orders_at_price_pool_.Allocate(order->side_, orders->price_, order, nullptr, nullptr);
+         AddOrdersAtPrice(new_orders_at_price);
+      }else{
+         auto first_order = (orders_at_price ? orders_at_price->first_me_order_ : nullptr);
+         first_order->prev_order_ = first_order->next_order_ = order;
+         order->prev_order_ = first_order->prev_order_;
+         order->next_order_ = first_order;
+         first_order->prev_order_ = order;
+      }
+
+      cid_oid_to_order_.at(order->client_id_).at(order->client_order_id_) = order;
+   }
+
+   auto AddOrdersAtPrice(MEOrdersAtPrice* new_orders_at_price) noexcept {
+      price_orders_at_price_.at(PriceToIndex(new_orders_at_price->price_)) = new_orders_at_price;
+      // get best bids and best asks for either side that's associated with our MEOrdersAtPrice object
+      const auto best_orders_by_price = (new_orders_at_price->side_ == Side::BUY ? bids_by_price_ : asks_by_price_);
+
+      // need to handle edge cased where bids or asks are empty
+      // then we need to set the bids_by_price_ or asks_by_price_ ourselves
+      // which points to the head of the sorted list for it's side
+      if(UNLIKELY(!best_orders_by_price)){
+         (new_orders_at_price->side_ == Side::BUY ? bids_by_price_ : asks_by_price_) = new_orders_at_price;
+         new_orders_at_price->prev_entry_ = new_orders_at_price->next_entry_ = new_orders_at_price;
+      }else{
+         // now we have a list of orders and need to find the correct entry in teh linked list of price levels
+         // so we will walk through the bids or asks till we find the correct price level and then we will insert
+         // we will use a boolean "add_after" to determine if we should insert before or after the target
+         // price level
+         auto target = best_orders_by_price;
+         bool add_after = ((new_orders_at_price->side_ == Side::SELL && new_orders_at_price->price_ > target->price) 
+                           || (new_orders_at_price->side_ == Side::BUY && new_orders_at_price->price_ < target->price_));
+         if(add_after){
+            target = target->next_entry_;
+            add_after = ((new_orders_at_price->side_ == Side::SELL && new_orders_at_price->price_ > target->price_)
+                           || (new_orders_at_price->side_ == Side::BUY && new_orders_at_price->price_ < target->price_));
+         }
+
+         while(add_after && target != best_orders_by_price){
+            add_after = ((new_orders_at_price->side_ == Side::SELL && new_orders_at_price->price_ > target->price_) 
+                           || (new_orders_at_price->side_ == Side::BUY && new_orders_at_price->side_ < target->price_));
+            if(add_after){
+               target = target->next_entry_;
+            }
+         }
+
+         // Need to append the new price level by updating the prev_entry_ or next_entry variables
+         // add new_orders_at_price after target.
+         if(add_after){
+            if(target == best_orders_by_price){
+               target = best_orders_by_price->prev_entry_;
+            }
+            new_orders_at_price->prev_entry_ = target;
+            target->next_entry_->prev_entry_ = new_orders_at_price;
+            new_orders_at_price->next_entry_ = target->next_entry_;
+            target->next_entry_ = new_orders_at_price;
+         }else{
+            // add new_orders_at_price before target
+            new_orders_at_price->prev_entry_ = target->prev_entry_;
+            new_orders_at_price->next_entry_ = target;
+            target->prev_entry_->next_entry_ = new_orders_at_price;
+            target->prev_entry_ = new_orders_at_price;
+
+            // Need to check if this price level is now best bid/best ask
+            if((new_orders_at_price->side_ == Side::BUY && new_orders_at_price->price_ > best_orders_by_price->price_)
+                  || (new_orders_at_price->side_ == Side::SELL && new_orders_at_price->price_ < best_orders_by_price->price_)){
+               target->next_entry_ = (target->next_entry_ == best_orders_by_price ? new_orders_at_price : target->next_entry_);
+               (new_orders_at_price->side_ == Side::BUY ? bids_by_price_ : asks_by_price_) = new_orders_at_price;
+            }
+         }
+      }
 
    }
 
