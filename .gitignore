@@ -1,0 +1,38 @@
+# Ignore build directories
+build/
+bin/
+lib/
+CMakeFiles/
+
+# Ignore CMake build artifacts
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+CMakeTmp/
+CTestTestfile.cmake
+cmake_install.cmake
+Makefile
+
+# Ignore compiled binaries and executables
+*.o
+*.a
+*.so
+*.dll
+*.exe
+*.out
+
+# Ignore generated documentation
+doc/
+
+# Ignore editor/IDE specific files
+.vscode/
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Ignore dependency directories
+deps/
+

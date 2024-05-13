@@ -42,7 +42,7 @@ class MEOrderBook final{
 private:
     TickerId ticker_id_ = TickerId_INVALID;
     MatchingEngine* matching_engine_ = nullptr;
-    ClientOrderHashMap cid_oid_to_order_;
+    ClientOrderHashmap cid_oid_to_order_;
     OrdersAtPriceHashMap price_orders_at_price_;
     MemPool<MEOrdersAtPrice> orders_at_price_pool_;
     MEOrdersAtPrice* bids_by_price_ = nullptr;
@@ -97,10 +97,10 @@ public:
 
       // adds order to the book
    auto AddOrder(MEOrder* order) noexcept{
-      const auto orders_at_price = GetOrdersAtPrice(order->price);
+      const auto orders_at_price = GetOrdersAtPrice(order->price_);
       if(!orders_at_price){
          order->next_order_ = order->prev_order_ = order;
-         auto new_orders_at_price = orders_at_price_pool_.Allocate(order->side_, orders->price_, order, nullptr, nullptr);
+         auto new_orders_at_price = orders_at_price_pool_.Allocate(order->side_, order->price_, order, nullptr, nullptr);
          AddOrdersAtPrice(new_orders_at_price);
       }else{
          auto first_order = (orders_at_price ? orders_at_price->first_me_order_ : nullptr);
@@ -130,7 +130,7 @@ public:
          // we will use a boolean "add_after" to determine if we should insert before or after the target
          // price level
          auto target = best_orders_by_price;
-         bool add_after = ((new_orders_at_price->side_ == Side::SELL && new_orders_at_price->price_ > target->price) 
+         bool add_after = ((new_orders_at_price->side_ == Side::SELL && new_orders_at_price->price_ > target->price_) 
                            || (new_orders_at_price->side_ == Side::BUY && new_orders_at_price->price_ < target->price_));
          if(add_after){
             target = target->next_entry_;
@@ -140,7 +140,7 @@ public:
 
          while(add_after && target != best_orders_by_price){
             add_after = ((new_orders_at_price->side_ == Side::SELL && new_orders_at_price->price_ > target->price_) 
-                           || (new_orders_at_price->side_ == Side::BUY && new_orders_at_price->side_ < target->price_));
+                           || (new_orders_at_price->side_ == Side::BUY && new_orders_at_price->price_ < target->price_));
             if(add_after){
                target = target->next_entry_;
             }
@@ -193,7 +193,7 @@ public:
       client_response_ = {ClientResponseType::ACCEPTED, client_id, ticker_id, client_order_id, 
                           new_market_order_id, side, price, 0, qty};
       
-      matching_engine->SendClientResponse(&client_response_);
+      matching_engine_->SendClientResponse(&client_response_);
 
       // check if order has matches with passive orders in orderbook
       const auto leaves_qty = CheckForMatch(client_id, client_order_id, ticker_id, side, price, qty, new_market_order_id);
