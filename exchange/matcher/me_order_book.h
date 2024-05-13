@@ -166,8 +166,10 @@ public:
             // Need to check if this price level is now best bid/best ask
             if((new_orders_at_price->side_ == Side::BUY && new_orders_at_price->price_ > best_orders_by_price->price_)
                   || (new_orders_at_price->side_ == Side::SELL && new_orders_at_price->price_ < best_orders_by_price->price_)){
+               
                target->next_entry_ = (target->next_entry_ == best_orders_by_price ? new_orders_at_price : target->next_entry_);
                (new_orders_at_price->side_ == Side::BUY ? bids_by_price_ : asks_by_price_) = new_orders_at_price;
+            
             }
          }
       }
@@ -215,8 +217,71 @@ public:
    }
 
    // Cancel()
-   void Cancel(ClientId client_id, OrderId order_id, TickerId ticker_id_){
+   auto Cancel(ClientId client_id, OrderId order_id, TickerId ticker_id) noexcept -> void{
+      // checking that the client_id is valid
+      auto is_cancelable = (client_id < cid_oid_to_order_.size());
+      MEOrder* exchange_order = nullptr;
+      // checking that the order_id specified exists in the orderbook and belongs to the client_id
+      if(LIKELY(is_cancelable)){
+         auto& co_itr = cid_oid_to_order_.at(client_id);
+         exchange_order = co_itr.at(order_id);
+         is_cancelable = (exchange_order != nullptr);
+      }
 
+      // if we don't find the order or it doesn't belong to the client, send a Cancel_Reject
+      // back to the client
+      if(UNLIKELY(!is_cancelable)){
+         client_response_ = {ClientResponseType::CANCEL_REJECTED, client_id, ticker_id, order_id,
+                             OrderId_INVALID, Side::INVALID, Price_INVALID, Qty_INVALID, Qty_INVALID};
+      }else{
+         client_response_ = {ClientResponseType::CANCELED, client_id, ticker_id, order_id,
+                             exchange_order->market_order_id_, exchange_order->side_, 
+                             exchange_order->price_, Qty_INVALID, exchange_order->qty_};
+         market_update_ = {MarketUpdateType::CANCEL, exchange_order->market_order_id_, ticker_id,
+                           exchange_order->side_, exchange_order->price_, 0, exchange_order->priority_};
+         RemoveOrder(exchange_order);
+         matching_engine_->SendMarketUpdate(&market_update_);
+      }
+      matching_engine_->SendClientResponse(&client_response_);
+    }
+
+    auto RemoveOrder(MEOrder* order) noexcept -> void{
+      auto orders_at_price = GetOrdersAtPrice(order->price_);
+
+      // only one element
+      if(order->prev_order_ == order){ 
+         RemoveOrdersAtPrice(order->side_, order->price_);
+      }else{
+         const auto order_before = order->prev_order_;
+         const auto order_after = order->next_order_;
+         order_before->next_order_ = order_after;
+         order_after->prev_order_ = order_before;
+         if(orders_at_price->first_me_order_ == order){
+            orders_at_price->first_me_order_ = order_after;
+         }
+         order->prev_order_ = order->next_order_ = nullptr;
+      }
+
+      cid_oid_to_order_.at(order->client_id_).at(order->client_order_id_) = nullptr;
+      order_pool_.Deallocate(order);
+    }
+
+    auto RemoveOrdersAtPrice(Side side, Price price) noexcept{
+      const auto best_orders_by_price = (side == Side::BUY ? bids_by_price_ : asks_by_price_);
+      auto orders_at_price = GetOrdersAtPrice(price);
+      if(UNLIKELY(orders_at_price->next_entry_ == orders_at_price)){
+         (side == Side::BUY ? bids_by_price_ : asks_by_price_) = nullptr;
+      }else{
+         orders_at_price->prev_entry_->next_entry_ = orders_at_price->next_entry_;
+         orders_at_price->next_entry_->prev_entry_ = orders_at_price->prev_entry_;
+
+         if(orders_at_price == best_orders_by_price){
+            (side == Side::BUY ? bids_by_price_ : asks_by_price_) = orders_at_price->next_entry_;
+         }
+         orders_at_price->prev_entry_ = orders_at_price->next_entry_ = nullptr; 
+      }
+      price_orders_at_price_.at(PriceToIndex(price)) = nullptr;
+      orders_at_price_pool_.Deallocate(orders_at_price);
     }
 
 };
