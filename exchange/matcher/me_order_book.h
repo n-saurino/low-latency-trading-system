@@ -284,7 +284,8 @@ public:
       orders_at_price_pool_.Deallocate(orders_at_price);
     }
 
-    auto CheckForMatch(ClientId client_id, OrderId client_order_id, TickerId ticker_id, Side side, Price price, Qty qty, Qty new_market_order_id) noexcept{
+    auto CheckForMatch(ClientId client_id, OrderId client_order_id, TickerId ticker_id, Side side, Price price, 
+                        Qty qty, Qty new_market_order_id) noexcept{
       auto leaves_qty = qty;
 
       // keep matching through the OrdersAtPrice LinkedList and taking out orders at each price level
@@ -312,6 +313,42 @@ public:
       }
 
       return leaves_qty;
+    }
+
+    auto match(TickerId ticker_id, ClientId client_id, Side side, OrderId client_order_id, Orderid new_market_order_id
+               MEOrder* itr, Qty* leaves_qty) noexcept{
+      const auto order = itr;
+      const auto order_qty = order->qty_;
+      const auto fill_qty = std::min(*leaves_qty, order_qty);
+      *leaves_qty -= fill_qty;
+      order->qty_ -= fill_qty;
+      
+      // send response to client of new order about fill
+      client_response_ = {ClientResponseType::FILLED, client_id, ticker_id, client_order_id,
+                           new_market_order_id, side, itr->price_, fill_qty, *leaves_qty};
+      matching_engine_->SendClientResponse(&client_response_);
+
+      // send response to client of passive order about fill
+      client_response_ = {ClientResponseType::FILLED, order->client_id_, ticker_id, order->client_order_id_, 
+                           order->market_order_id_, order->side_, itr->price_, fill_qty, order->qty_};
+      matching_engine_->SendClientResponse(&client_response_);
+
+      // send trade message to market as a market update
+      market_update_ = {MarketUpdateType::TRADE, OrderId_INVALID, ticker_id, side, itr->price_,
+                        fill_qty, Priority_INVALID};
+      matching_engine_->SendMarketUpdate(&market_update_);
+
+      // send modify or cancel of passive order to market as a market update
+      if(!order->qty_){
+         market_update_ = {MarketUpdateType::CANCEL, order->market_order_id_, ticker_id, order->side_,
+                           order->price_, order_qty, Priority_INVALID};
+         matching_engine_->SendMarketUpdate(&market_update_);
+         removeOrder(order);
+      }else{
+         market_update_ = {MarketUpdateType::MODIFY, order->market_order_id_, ticker_id, order->side_,
+                           order->price_, order->qty_, order->priority_};
+         matching_engine_->SendMarketUpdate(&market_update_);
+      }
 
     }
 
