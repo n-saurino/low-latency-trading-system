@@ -284,6 +284,37 @@ public:
       orders_at_price_pool_.Deallocate(orders_at_price);
     }
 
+    auto CheckForMatch(ClientId client_id, OrderId client_order_id, TickerId ticker_id, Side side, Price price, Qty qty, Qty new_market_order_id) noexcept{
+      auto leaves_qty = qty;
+
+      // keep matching through the OrdersAtPrice LinkedList and taking out orders at each price level
+      // as long as the client order quantity > 0 and there are still price levels that the client 
+      // order crosses
+
+      if(side == Side::BUY){
+         while(leaves_qty && asks_by_price_){
+            const auto ask_itr = asks_by_price_->first_me_order_;
+            if(LIKELY(price < ask_itr->price_)){
+               break;
+            }
+            match(ticker_id, client_id, side, client_order_id, new_market_order_id, ask_itr, &leaves_qty);
+         }
+      }
+
+      if(side == Side::SELL){
+         while(leaves_qty && bids_by_price_){
+            const auto bid_itr = bids_by_price_->first_me_order_;
+            if(LIKELY(price > bid_itr->price_)){
+               break;
+            }
+            match(ticker_id, client_id, side, client_order_id, new_market_order_id, bid_itr, &leaves_qty);
+         }
+      }
+
+      return leaves_qty;
+
+    }
+
 };
 
 typedef std::array<MEOrderBook *, ME_MAX_TICKERS> OrderBookHashMap;
