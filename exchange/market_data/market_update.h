@@ -8,10 +8,14 @@ namespace Exchange{
 #pragma pack(push,1)
 enum class MarketUpdateType: uint8_t{
     INVALID = 0,
-    ADD = 1,
-    MODIFY = 2,
-    CANCEL = 3,
-    TRADE = 4
+    CLEAR = 1, // let's clients know that they should clear/empty their orderbook
+    ADD = 2,
+    MODIFY = 3,
+    CANCEL = 4,
+    TRADE = 5,
+    SNAPSHOT_START = 6, // notify clients that a snapshot update is starting
+    SNAPSHOT_END = 7 // notify clients that all snapshot updates have been delivered
+    
 };
 
 inline std::string MarketUpdateTypeToString(MarketUpdateType market_update_type){
@@ -57,8 +61,22 @@ struct MEMarketUpdate{
         return ss.str();
     }
 };
+
+struct MDPMarketUpdate{
+    size_t seq_num_ = 0;
+    MEMarketUpdate me_market_update_;
+    auto ToString() const{
+        std::stringstream ss;
+        ss << "MDPMarketUpdate"
+            << " ["
+            << " seq:" << seq_num_
+            << " " << me_market_update_.ToString()
+            << "]";
+        return ss.str();
+    }
+};
 #pragma pack(pop)
 
 typedef Common::LFQueue<Exchange::MEMarketUpdate> MEMarketUpdateLFQueue;
-
+typedef Common::LFQueue<Exchange::MDPMarketUpdate> MDPMarketUpdateLFQueue;
 }

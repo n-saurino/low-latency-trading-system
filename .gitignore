@@ -1,0 +1,119 @@
+# Ignore build artifacts and intermediate files
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+/CMakeScripts/
+/Testing/
+/Makefile
+/install_manifest.txt
+/compile_commands.json
+/deps/
+/tmp/
+
+# Ignore IDE-specific files (VSCode)
+/.vscode/
+/.vscode-test/
+/*.code-workspace
+
+# Ignore Docker-specific files (if not part of the project)
+/docker-compose.yml
+/Dockerfile
+
+# Ignore common Linux files
+*~
+
+# Ignore user-specific files
+*.swp
+*.swo
+*.DS_Store
+*.pyc
+*.pyo
+*.out
+*.log
+*.bak
+*.old
+*.orig
+*.tmp
+
+# Ignore editor backups and binary files
+*~
+*.bak
+*.orig
+*.log
+*.rej
+*.sublime-workspace
+*.sublime-project
+
+# Ignore dependency directories
+/vendor/
+/node_modules/
+
+# Ignore system-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore CMake generated files
+/CMakeFiles/
+/CMakeCache.txt
+/CMakeScripts/
+/cmake_install.cmake
+/install_manifest.txt
+
+# Ignore build directories
+/build/
+/bin/
+/lib/
+/lib64/
+/out/
+/Debug/
+/Release/
+
+# Ignore other common directories
+/.idea/
+/.idea_modules/
+/project.xcworkspace/
+/*.xcworkspace
+
+# Ignore Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore coverage and profiling files
+*.gcda
+*.gcno
+*.gcov
+
+# Ignore compiled shared objects
+*.so
+
+# Ignore directories for virtual environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Ignore logs and databases
+*.log
+*.sqlite
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Ignore AWS SAM files
+.aws-sam/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore hidden files from text editors
+._*
+
+# Ignore environment variable files
+.env
+
+# Ignore local .gitignore rules
+.local.gitignore
