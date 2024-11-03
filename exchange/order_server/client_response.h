@@ -57,6 +57,22 @@ struct MEClientResponse{
         return ss.str();
     }
 };
+
+struct OMClientResponse{
+    size_t seq_num_;
+    MEClientResponse me_client_response_;
+    auto ToString(){
+        std::stringstream ss;
+        ss << "OMClientResponse: "
+            << " ["
+            << " seq: " << seq_num_
+            << " "
+            <<  me_client_response_.ToString()
+            << "]";
+        return ss.str();
+    }
+};
+
 #pragma pack(pop)
 
 // client response lock-free queue

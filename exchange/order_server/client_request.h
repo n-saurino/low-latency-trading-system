@@ -49,6 +49,21 @@ struct MEClientRequest{
     }
 };
 
+struct OMClientRequest{
+    size_t seq_num_;
+    MEClientRequest me_client_request_;
+    auto ToString(){
+        std::stringstream ss;
+        ss << "OMClientRequest: "
+            << " ["
+            << " seq: " << seq_num_
+            << " "
+            << me_client_request_.ToString()
+            << "]";
+        return ss.str();
+    }
+};
+
 #pragma pack(pop)
 typedef LFQueue<MEClientRequest> ClientRequestLFQueue;
 }
