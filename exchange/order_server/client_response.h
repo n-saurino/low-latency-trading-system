@@ -61,7 +61,7 @@ struct MEClientResponse{
 struct OMClientResponse{
     size_t seq_num_;
     MEClientResponse me_client_response_;
-    auto ToString(){
+    auto ToString() const{
         std::stringstream ss;
         ss << "OMClientResponse: "
             << " ["
