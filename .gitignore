@@ -17,7 +17,6 @@
 
 # Ignore Docker-specific files (if not part of the project)
 /docker-compose.yml
-/Dockerfile
 
 # Ignore common Linux files
 *~
