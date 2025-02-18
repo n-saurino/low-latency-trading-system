@@ -52,7 +52,7 @@ struct MEClientRequest{
 struct OMClientRequest{
     size_t seq_num_;
     MEClientRequest me_client_request_;
-    auto ToString(){
+    auto ToString() const{
         std::stringstream ss;
         ss << "OMClientRequest: "
             << " ["
